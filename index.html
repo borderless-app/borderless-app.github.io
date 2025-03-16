@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>borderless</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-geo@3.5.2/build/index.umd.min.js"></script>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #f0f4f8, #ffffff);
+      color: #333;
+      padding: 20px;
+      height: 100vh;
+      overflow: auto;
+    }
+    .container {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      width: 100%;
+    }
+    .sidebar {
+      width: 35%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .instructions {
+      background-color: #fff;
+      padding: 8px 12px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      font-size: 0.9rem;
+      color: #555;
+    }
+    .section {
+      background-color: #ffffff;
+      padding: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      border-radius: 12px;
+    }
+    .section h2 {
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+      color: #007BFF;
+      border-bottom: 1px solid #f0f0f0;
+      padding-bottom: 3px;
+    }
+    .section input[type="text"] {
+      width: 90%;
+      max-width: 300px;
+      padding: 10px 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-bottom: 10px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+    .section input[type="text"]:focus {
+      border-color: #007BFF;
+    }
+    .section ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    .section li {
+      display: flex;
+      align-items: center;
+      padding: 10px 15px;
+      border-bottom: 1px solid #f0f0f0;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .section li:last-child {
+      border-bottom: none;
+    }
+    .section li:hover {
+      background: #f9f9f9;
+    }
+    .section li input[type="checkbox"] {
+      margin-right: 10px;
+      transform: scale(1.2);
+      cursor: pointer;
+    }
+    .wish-btn {
+      margin-left: auto;
+      font-size: 1.2em;
+      cursor: pointer;
+      user-select: none;
+    }
+    #capture {
+      width: 100%;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      font-size: 2.5rem;
+      margin: 0;
+    }
+    .header p {
+      font-size: 1.2rem;
+      color: #555;
+      margin: 5px 0 0;
+    }
+    .map-container {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      padding: 10px;
+    }
+    .stats-container {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 15px;
+    }
+    .stat-card {
+      background: white;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      text-align: center;
+      min-width: 150px;
+    }
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+      .sidebar, #capture {
+        width: 100%;
+      }
+      .stats-container {
+        flex-direction: column;
+        gap: 10px;
+      }
+    }
+    /* Estilização do botão de download */
+    #download-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #007BFF;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      font-size: 1rem;
+      transition: background-color 0.3s ease;
+      z-index: 1000;
+    }
+    #download-btn:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <!-- Botão reposicionado para o canto superior direito -->
+  <button id="download-btn">Download Map Image</button>
+  <div class="container">
+    <div class="sidebar">
+      <div class="instructions">
+        <p>Click on the country's name or checkbox to mark as visited. Click on the star to mark as wished to visit.</p>
+      </div>
+      <div class="section">
+        <h2>Available Countries</h2>
+        <input type="text" id="search" placeholder="Search countries..." />
+        <ul id="countries-list"></ul>
+      </div>
+      <div class="section">
+        <h2>Visited Countries</h2>
+        <ul id="visited-list"></ul>
+      </div>
+      <div class="section">
+        <h2>Wish to Visit Countries</h2>
+        <ul id="wish-list"></ul>
+      </div>
+    </div>
+    <div id="capture">
+      <header class="header">
+        <h1>borderless</h1>
+        <p>Discover the world, share your journey</p>
+      </header>
+      <div class="map-container">
+        <canvas id="world-map"></canvas>
+        <div class="stats-container">
+          <div class="stat-card" id="visited-stats">Visited: 0 / 0</div>
+          <div class="stat-card" id="wish-stats">Wish: 0</div>
+          <div class="stat-card" id="region-stats">Regions: 0 / 7</div>
+          <div class="stat-card" id="percent-stats">World Known: 0%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script>
+    const countriesList = document.getElementById('countries-list');
+    const visitedList = document.getElementById('visited-list');
+    const wishList = document.getElementById('wish-list');
+    const searchInput = document.getElementById('search');
+    const ctx = document.getElementById('world-map').getContext('2d');
+    const visitedStats = document.getElementById('visited-stats');
+    const wishStats = document.getElementById('wish-stats');
+    const regionStats = document.getElementById('region-stats');
+    const percentStats = document.getElementById('percent-stats');
+    let chart;
+    let countryStatus = JSON.parse(localStorage.getItem('visited') || '{}');
+    let allCountries = [];
+    let visitedRegions = new Set();
+    
+    function getContinent(region, subregion) {
+      if (region === "Americas") {
+        if (subregion && subregion.includes("North")) return "North America";
+        if (subregion && subregion.includes("South")) return "South America";
+        return "Americas";
+      }
+      if (region === "Antarctic" || region === "Antarctica") return "Antarctica";
+      return region;
+    }
+    
+    async function loadCountries() {
+      const response = await fetch('https://restcountries.com/v3.1/all');
+      let countries = await response.json();
+      allCountries = countries.filter(country => country.unMember || country.name.common === "Taiwan" || country.name.common === "Vatican City");
+      allCountries.sort((a, b) => a.name.common.localeCompare(b.name.common));
+      renderCountries(allCountries);
+      renderMap();
+      updateStats();
+    }
+    
+    function updateStats() {
+      const visitedCount = Object.values(countryStatus).filter(v => v === 'visited').length;
+      const wishCount = Object.values(countryStatus).filter(v => v === 'wish').length;
+      const totalCountries = allCountries.length;
+      const worldPercentage = ((visitedCount / totalCountries) * 100).toFixed(2);
+      visitedStats.textContent = `Visited: ${visitedCount} / ${totalCountries}`;
+      wishStats.textContent = `Wish: ${wishCount}`;
+      percentStats.textContent = `World Known: ${worldPercentage}%`;
+      visitedRegions.clear();
+      allCountries.forEach(country => {
+        if (countryStatus[country.name.common] === 'visited') {
+          visitedRegions.add(getContinent(country.region, country.subregion));
+        }
+      });
+      regionStats.textContent = `Regions: ${visitedRegions.size} / 7`;
+    }
+    
+    function renderCountries(countries) {
+      countriesList.innerHTML = '';
+      visitedList.innerHTML = '';
+      wishList.innerHTML = '';
+      countries.forEach(country => {
+        const li = document.createElement('li');
+        li.style.display = 'flex';
+        li.style.alignItems = 'center';
+        li.title = "Click to mark as visited";
+        const visitedCheckbox = document.createElement('input');
+        visitedCheckbox.type = 'checkbox';
+        visitedCheckbox.checked = countryStatus[country.name.common] === 'visited';
+        visitedCheckbox.title = "Click to mark as visited";
+        visitedCheckbox.addEventListener('change', (e) => {
+          if (e.target.checked) {
+            countryStatus[country.name.common] = 'visited';
+          } else {
+            if (countryStatus[country.name.common] === 'visited') {
+              delete countryStatus[country.name.common];
+            }
+          }
+          localStorage.setItem('visited', JSON.stringify(countryStatus));
+          renderCountries(allCountries);
+          renderMap();
+          updateStats();
+        });
+        const wishButton = document.createElement('span');
+        wishButton.classList.add('wish-btn');
+        wishButton.textContent = countryStatus[country.name.common] === 'wish' ? '★' : '☆';
+        wishButton.title = "Click to mark as wished to visit";
+        wishButton.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (countryStatus[country.name.common] === 'wish') {
+            delete countryStatus[country.name.common];
+          } else if (countryStatus[country.name.common] !== 'visited') {
+            countryStatus[country.name.common] = 'wish';
+          }
+          localStorage.setItem('visited', JSON.stringify(countryStatus));
+          renderCountries(allCountries);
+          renderMap();
+          updateStats();
+        });
+        li.addEventListener('click', (e) => {
+          if(e.target.tagName.toLowerCase() !== 'input'){
+            visitedCheckbox.checked = !visitedCheckbox.checked;
+            visitedCheckbox.dispatchEvent(new Event('change'));
+          }
+        });
+        const flagEmoji = country.flag;
+        li.appendChild(visitedCheckbox);
+        li.appendChild(document.createTextNode(`${flagEmoji} ${country.name.common}`));
+        li.appendChild(wishButton);
+        if (countryStatus[country.name.common] === 'visited') {
+          visitedList.appendChild(li);
+        } else if (countryStatus[country.name.common] === 'wish') {
+          wishList.appendChild(li);
+        } else {
+          countriesList.appendChild(li);
+        }
+      });
+    }
+    
+    async function renderMap() {
+      const world = await fetch('https://unpkg.com/world-atlas/countries-110m.json').then(r => r.json());
+      const countriesGeo = ChartGeo.topojson.feature(world, world.objects.countries).features;
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'choropleth',
+        data: {
+          labels: countriesGeo.map(d => d.properties.name),
+          datasets: [{
+            label: 'Country Status',
+            data: countriesGeo.map(d => {
+              const status = countryStatus[d.properties.name];
+              if (status === 'visited') return { feature: d, value: 1 };
+              else if (status === 'wish') return { feature: d, value: 0.5 };
+              else return { feature: d, value: 0 };
+            }),
+            backgroundColor: function(context) {
+              const index = context.dataIndex;
+              if (typeof index === 'undefined' || !context.dataset.data[index]) {
+                return 'lightgrey';
+              }
+              const d = context.dataset.data[index];
+              if (d.value === 1) return '#ff66b2';
+              else if (d.value === 0.5) return '#66ccff';
+              else return 'lightgrey';
+            },
+            borderWidth: 0.5,
+            borderColor: 'white'
+          }]
+        },
+        options: {
+          layout: {
+            padding: 0
+          },
+          scales: { 
+            xy: { projection: 'equalEarth' },
+            color: { display: false } // Desativa a escala/legenda de cor
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false }
+          }
+        }
+      });
+    }
+    
+    document.getElementById('world-map').addEventListener('click', function(e) {
+      if (!chart) return;
+      const elements = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
+      if (elements.length) {
+        const index = elements[0].index;
+        const countryName = chart.data.labels[index];
+        if (countryStatus[countryName] === 'visited') {
+          delete countryStatus[countryName];
+        } else {
+          countryStatus[countryName] = 'visited';
+        }
+        localStorage.setItem('visited', JSON.stringify(countryStatus));
+        renderCountries(allCountries);
+        renderMap();
+        updateStats();
+      }
+    });
+    
+    searchInput.addEventListener('input', () => {
+      const searchTerm = searchInput.value.toLowerCase();
+      const filtered = allCountries.filter(c => c.name.common.toLowerCase().includes(searchTerm));
+      renderCountries(filtered);
+    });
+    
+    document.getElementById('download-btn').addEventListener('click', function() {
+      html2canvas(document.getElementById('capture')).then(function(canvas) {
+        var link = document.createElement('a');
+        link.download = 'map.png';
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+    });
+    
+    loadCountries();
+  </script>
+</body>
+</html>
