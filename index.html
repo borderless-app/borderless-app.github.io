@@ -13,9 +13,9 @@
       background: linear-gradient(135deg, #f0f4f8, #ffffff);
       color: #333;
       padding: 20px;
-      height: 100vh;
-      overflow: auto;
       margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
     .container {
       display: flex;
@@ -28,6 +28,9 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+    }
+    .sidebar #close-sidebar {
+      display: none;
     }
     .instructions {
       background-color: #fff;
@@ -119,6 +122,10 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       padding: 10px;
     }
+    .map-container canvas {
+      width: 100% !important;
+      height: auto !important;
+    }
     .stats-container {
       display: flex;
       justify-content: space-around;
@@ -131,18 +138,6 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       text-align: center;
       min-width: 150px;
-    }
-    @media (max-width: 768px) {
-      .container {
-        flex-direction: column;
-      }
-      .sidebar, #capture {
-        width: 100%;
-      }
-      .stats-container {
-        flex-direction: column;
-        gap: 10px;
-      }
     }
     #download-btn {
       position: fixed;
@@ -162,12 +157,90 @@
     #download-btn:hover {
       background-color: #0056b3;
     }
+    #mobile-toggle {
+      display: none;
+    }
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 80%;
+        height: 100%;
+        background: #fff;
+        z-index: 2000;
+        overflow-y: auto;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+      }
+      .sidebar.active {
+        transform: translateX(0);
+      }
+      #mobile-toggle {
+        display: block;
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: #007BFF;
+        color: #fff;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 8px;
+        z-index: 2100;
+      }
+      .sidebar #close-sidebar {
+        display: block;
+        margin: 10px;
+        background: #007BFF;
+        color: #fff;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 8px;
+      }
+      #capture {
+        margin-top: 60px;
+        width: 100%;
+      }
+      .header h1 {
+        font-size: 2rem;
+      }
+      .header p {
+        font-size: 1rem;
+      }
+      .section input[type="text"] {
+        width: 100%;
+      }
+      .stats-container {
+        flex-direction: column;
+        gap: 10px;
+      }
+    }
+    @media (max-width: 480px) {
+      .header h1 {
+        font-size: 1.75rem;
+      }
+      .header p {
+        font-size: 0.9rem;
+      }
+      .section h2 {
+        font-size: 1rem;
+      }
+      .stat-card {
+        font-size: 0.9rem;
+        padding: 10px;
+      }
+    }
   </style>
 </head>
 <body>
+  <button id="mobile-toggle">Menu</button>
   <button id="download-btn">Download Map Image</button>
   <div class="container">
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
+      <button id="close-sidebar">Close</button>
       <div class="instructions">
         <p>Click on the country's name or checkbox to mark as visited. Click on the star to mark as wished to visit.</p>
       </div>
@@ -204,6 +277,17 @@
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script>
     "use strict";
+    const mobileToggle = document.getElementById('mobile-toggle');
+    const closeSidebar = document.getElementById('close-sidebar');
+    const sidebar = document.getElementById('sidebar');
+    mobileToggle.addEventListener('click', () => {
+      sidebar.classList.add('active');
+      mobileToggle.style.display = 'none';
+    });
+    closeSidebar.addEventListener('click', () => {
+      sidebar.classList.remove('active');
+      mobileToggle.style.display = 'block';
+    });
     const countriesList = document.getElementById('countries-list');
     const visitedList = document.getElementById('visited-list');
     const wishList = document.getElementById('wish-list');
@@ -303,7 +387,7 @@
           updateStats();
         });
         li.addEventListener('click', (e) => {
-          if(e.target.tagName.toLowerCase() !== 'input'){
+          if (e.target.tagName.toLowerCase() !== 'input') {
             visitedCheckbox.checked = !visitedCheckbox.checked;
             visitedCheckbox.dispatchEvent(new Event('change'));
           }
